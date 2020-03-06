@@ -187,19 +187,49 @@ export class SettingsSynchroniser extends AbstractJsonFileSynchroniser implement
 		return false;
 	}
 
-	async getRemoteContent(preview?: boolean): Promise<string | null> {
-		let content = await super.getRemoteContent(preview);
+	async getRemoteContentFromPreview(): Promise<string | null> {
+		let content = await super.getRemoteContentFromPreview();
 		if (content !== null) {
 			const settingsSyncContent = this.parseSettingsSyncContent(content);
 			content = settingsSyncContent ? settingsSyncContent.settings : null;
 		}
-		if (preview && content !== null) {
+		if (content !== null) {
 			const formatUtils = await this.getFormattingOptions();
 			// remove ignored settings from the remote content for preview
 			const ignoredSettings = await this.getIgnoredSettings();
 			content = updateIgnoredSettings(content, '{}', ignoredSettings, formatUtils);
 		}
 		return content;
+	}
+
+	async getRemoteContent(ref?: string, fragment?: string): Promise<string | null> {
+		let content = await super.getRemoteContent(ref);
+		if (content !== null && fragment) {
+			return this.getFragment(content, fragment);
+		}
+		return content;
+	}
+
+	async getLocalBackupContent(ref?: string, fragment?: string): Promise<string | null> {
+		let content = await super.getLocalBackupContent(ref);
+		if (content !== null && fragment) {
+			return this.getFragment(content, fragment);
+		}
+		return content;
+	}
+
+	private getFragment(content: string, fragment: string): string | null {
+		const syncData = this.parseSyncData(content);
+		if (syncData) {
+			const settingsSyncContent = this.parseSettingsSyncContent(syncData.content);
+			if (settingsSyncContent) {
+				switch (fragment) {
+					case 'settings':
+						return settingsSyncContent.settings;
+				}
+			}
+		}
+		return null;
 	}
 
 	async accept(content: string): Promise<void> {

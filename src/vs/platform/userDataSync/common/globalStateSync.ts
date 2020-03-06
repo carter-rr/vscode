@@ -104,6 +104,33 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 
 	async stop(): Promise<void> { }
 
+	async getRemoteContent(ref?: string, fragment?: string): Promise<string | null> {
+		let content = await super.getRemoteContent(ref);
+		if (content !== null && fragment) {
+			return this.getFragment(content, fragment);
+		}
+		return content;
+	}
+
+	async getLocalBackupContent(ref?: string, fragment?: string): Promise<string | null> {
+		let content = await super.getLocalBackupContent(ref);
+		if (content !== null && fragment) {
+			return this.getFragment(content, fragment);
+		}
+		return content;
+	}
+
+	private getFragment(content: string, fragment: string): string | null {
+		const syncData = this.parseSyncData(content);
+		if (syncData) {
+			switch (fragment) {
+				case 'globalState':
+					return syncData.content;
+			}
+		}
+		return null;
+	}
+
 	accept(content: string): Promise<void> {
 		throw new Error('UI State: Conflicts should not occur');
 	}
@@ -118,10 +145,6 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 			/* ignore error */
 		}
 		return false;
-	}
-
-	async getRemoteContent(): Promise<string | null> {
-		return null;
 	}
 
 	protected async performSync(remoteUserData: IRemoteUserData, lastSyncUserData: IRemoteUserData | null): Promise<SyncStatus> {

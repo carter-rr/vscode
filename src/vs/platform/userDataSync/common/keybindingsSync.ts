@@ -156,9 +156,36 @@ export class KeybindingsSynchroniser extends AbstractJsonFileSynchroniser implem
 		return false;
 	}
 
-	async getRemoteContent(preview?: boolean): Promise<string | null> {
-		const content = await super.getRemoteContent(preview);
+	async getRemoteContentFromPreview(): Promise<string | null> {
+		const content = await super.getRemoteContentFromPreview();
 		return content !== null ? this.getKeybindingsContentFromSyncContent(content) : null;
+	}
+
+	async getRemoteContent(ref?: string, fragment?: string): Promise<string | null> {
+		const content = await super.getRemoteContent(ref);
+		if (content !== null && fragment) {
+			return this.getFragment(content, fragment);
+		}
+		return content;
+	}
+
+	async getLocalBackupContent(ref?: string, fragment?: string): Promise<string | null> {
+		let content = await super.getLocalBackupContent(ref);
+		if (content !== null && fragment) {
+			return this.getFragment(content, fragment);
+		}
+		return content;
+	}
+
+	private getFragment(content: string, fragment: string): string | null {
+		const syncData = this.parseSyncData(content);
+		if (syncData) {
+			switch (fragment) {
+				case 'keybindings':
+					return this.getKeybindingsContentFromSyncContent(syncData.content);
+			}
+		}
+		return null;
 	}
 
 	protected async performSync(remoteUserData: IRemoteUserData, lastSyncUserData: IRemoteUserData | null): Promise<SyncStatus> {
